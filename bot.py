@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from telegram.error import Conflict
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, CallbackContext, ContextTypes
+from telegram.constants import ChatAction
 
 load_dotenv()
 
@@ -58,6 +59,10 @@ async def get_model_response(context: ContextTypes.DEFAULT_TYPE, update: Update)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Shows the start message"""
+
+    # Send typing action to user - to show that the bot is typing
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+
     logger.info(f"{update.message.chat.id} - {update.message.chat.username} - {update.message.text}")
     
     # Create chat session if not in context.user_data
@@ -79,8 +84,10 @@ async def get_response_send_reply(update: Update, context: ContextTypes.DEFAULT_
     """Get response from model and send reply to user"""
 
     model_response = await get_model_response(context, update)
+    print(f"Model response: {model_response}")
     if model_response:
         await update.message.reply_text(f"{model_response['message']}")
+        context.user_data['threshold'] = model_response['threshold']
     else:
         await update.effective_chat.send_message("Omo, e be like something don spoil, try again")
         logger.error("Failed to get model response")
@@ -88,6 +95,9 @@ async def get_response_send_reply(update: Update, context: ContextTypes.DEFAULT_
 
 async def handle_message(update, context):
     """Handle user message."""
+
+    # Send typing action to user - to show that the bot is typing
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
 
     print(f"Context user data: {context.user_data}")
     try:
