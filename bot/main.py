@@ -39,10 +39,10 @@ async def policy_message(update: Update, user_data):
     # check if user has not accepted the policy and send them the policy
     if user_data and not user_data['accepted_policy']:
         reply_markup = keyboard()
-        await update.message.reply_text("Welcome oh! I greet you. Before we start abeg, make we yarn small about privacy.\n\nAs we dey talk, I fit dey collect small data wey go help me learn. No fear, I no go cast your gist. If you wan know as e dey go, enter here make you read the full gist: https://www.google.com", reply_markup=reply_markup)
+        await update.message.reply_text("Welcome oh! I greet you. Before we start abeg, make we yarn small about privacy.\n\nAs we dey talk, I fit dey collect small data wey go help me learn. No fear, I no go cast your gist. If you wan know as e dey go, [enter here](https://pidgin-bot-blob-bucket.nyc3.cdn.digitaloceanspaces.com/Privacy%20Policy%20-%20PidginChatbot.pdf) make you read the full gist", parse_mode="Markdown", reply_markup=reply_markup)
     # if user has accepted the policy, send them a welcome message
     elif user_data and user_data['accepted_policy']:
-        await update.message.reply_text(f"""How you dey @{update.message.chat.username}? Abeg, follow me talk, na only Pidgin I sabi. Wetin dey happen for Nigeria?""")
+        await update.message.reply_text(f"""How you dey @{update.message.chat.username}? Wetin dey happen?""")
 
 
 
