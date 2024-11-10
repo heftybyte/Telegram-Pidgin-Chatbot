@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
-from telegram.constants import ChatAction
+from telegram.constants import ChatAction, ParseMode
 
 from bot import error_handler, create_chat_session, get_model_response
 from bot.handlers import get_user_data, update_user_privacy_policy_acceptance
@@ -36,34 +36,44 @@ async def send_typing_action(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def policy_message(update: Update, user_data):
+    print('policy message function called with user data:', user_data)
     # check if user has not accepted the policy and send them the policy
-    if user_data and not user_data['accepted_policy']:
+    if user_data and user_data['accepted_policy'] == False:
+        print('user data exists and accepted policy is false')
         reply_markup = keyboard()
-        await update.message.reply_text("Welcome oh @{update.message.chat.username}! I greet you. Before we start abeg, make we yarn small about privacy.\n\nAs we dey talk, I fit dey collect small data wey go help me learn. No fear, I no go cast your gist. If you wan know as e dey go, [enter here](https://pidgin-bot-blob-bucket.nyc3.cdn.digitaloceanspaces.com/Privacy%20Policy%20-%20PidginChatbot.pdf) make you read the full gist", parse_mode="Markdown", reply_markup=reply_markup)
+        await update.message.reply_text(
+            f"""Welcome oh @{update.message.chat.username}! I greet you. Before we start abeg, make we yarn small about privacy.\n\nAs we dey talk, I fit dey collect small data wey go help me learn. No fear, I no go cast your gist. If you wan know as e dey go, <a href="https://pidgin-bot-blob-bucket.nyc3.cdn.digitaloceanspaces.com/PrivacyPolicy.pdf">enter here</a> make you read the full thing.""", 
+            parse_mode=ParseMode.HTML, 
+            reply_markup=reply_markup
+        )
+        print('user has not accepted policy, policy message sent')
     # if user has accepted the policy, send them a welcome message
     elif user_data and user_data['accepted_policy']:
         await update.message.reply_text(f"""How you dey @{update.message.chat.username}? Wetin dey happen?""")
-
+        print('user has accepted policy, welcome message sent')
 
 
 async def accept_policy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Accept the policy"""
 
-    print(f"Context user data: {context.user_data}")
+    print('Accept policy function called')
+    print(f"printing out context user data: {context.user_data}")
 
     user_id = update.effective_user.id
     user_data = await get_user_data(user_id)
-    print(f"User data: {user_data}")
+    print(f"printing out user data from db if any: {user_data}")
     # if user exists
     if user_data:
-        print('user data exists')
+        print('yay, user data exists')
         # check if user has accepted the policy and send them a welcome message if they have 
         await policy_message(update, user_data)
     else:
-        print('user data does not exist')
+        print('nope, user data does not exist')
         # if user does not exist, create a new user and send them the policy if they have not accepted it
         if await create_chat_session(update, context):
+            print('yay, chat session & user created')
             user_data = await get_user_data(user_id)
+
             await policy_message(update, user_data)
         else:
             await update.message.reply_text("Failed to create chat session")
@@ -126,14 +136,20 @@ async def handle_message(update, context):
     try:
         user_id = update.effective_user.id
         user_data = await get_user_data(user_id)
-        if user_data and not user_data['accepted_policy']:
+        # if user exists but has not accepted the policy, send them the policy
+        if user_data and user_data['accepted_policy'] == False:
             print('accepted policy is false in user data', user_data)
             await accept_policy(update, context)
+        
         # if user has accepted the policy, continue with the chat session
-        else:
+        elif user_data and user_data['accepted_policy'] == True:
             print('accepted policy is true in user data', user_data)
             if update.message and update.message.text:
                 await get_response_send_reply(update, context)
+        
+        # if user does not exist, create a new user and send them the policy if they have not accepted it
+        elif not user_data:
+            await accept_policy(update, context)
 
         
     except Exception as e:
